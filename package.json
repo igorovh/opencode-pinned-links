@@ -1,0 +1,74 @@
+{
+  "name": "opencode-pinned-links",
+  "version": "0.0.0",
+  "description": "Pinned links for the OpenCode V2 TUI: the agent pins pull requests, Linear issues and other URLs to the session sidebar, one click opens them in the browser",
+  "type": "module",
+  "license": "MIT",
+  "author": "igorovh",
+  "homepage": "https://github.com/igorovh/opencode-pinned-links#readme",
+  "bugs": {
+    "url": "https://github.com/igorovh/opencode-pinned-links/issues"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igorovh/opencode-pinned-links.git"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "opencode-v2",
+    "tui",
+    "sidebar",
+    "links",
+    "pull-request",
+    "linear",
+    "opentui",
+    "solidjs"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./tui": "./dist/tui.js"
+  },
+  "scripts": {
+    "compile": "bun scripts/compile.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "record": "bun scripts/record.ts"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.2.5",
+    "@opentui/core": ">=0.8.0",
+    "@opentui/solid": ">=0.8.0",
+    "solid-js": ">=1.9.0"
+  },
+  "peerDependenciesMeta": {
+    "@opencode/plugin": {
+      "optional": true
+    },
+    "@opentui/core": {
+      "optional": true
+    },
+    "@opentui/solid": {
+      "optional": true
+    },
+    "solid-js": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.3.2",
+    "@opentui/core": "0.9.3",
+    "@opentui/solid": "0.9.3",
+    "@types/bun": "^1.3.0",
+    "@types/node": "^26.0.0",
+    "playwright": "1.65.0",
+    "solid-js": "1.9.19",
+    "typescript": "^7.0.0"
+  }
+}

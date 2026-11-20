@@ -1,0 +1,29 @@
+# The agent pins its pull request: the sidebar shows it at once.
+pin https://github.com/acme/web/pull/501 Settings: contrast fixes
+expect #501 Settings: contrast fixes
+wait 1200
+hover Theme tokens
+wait 600
+unpin Theme tokens
+expect-not Theme tokens
+wait 600
+type /links
+key Enter
+expect Pinned links
+wait 1200
+key down
+wait 400
+key ctrl+d
+expect-not #482
+wait 1200
+key Escape
+expect-not Pinned links
+type /pin https://acme.atlassian.net/browse/OPS-42 Rotate keys
+wait 400
+key Enter
+expect OPS-42 Rotate keys
+wait 800
+right Rotate keys
+expect Open in browser
+wait 1500
+key Escape
