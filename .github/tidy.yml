@@ -23,3 +23,6 @@ review:
         bun install --frozen-lockfile > /dev/null
         bunx playwright install --with-deps chromium > /dev/null
       command: ["bun", "run", "record", "--", "--out", "{out}/demo.gif"]
+
+# Uses DIST_DEPLOY_KEY only on renovate/ branches, never on tidy's.
+safe_workflows: [renovate-dist.yml]
