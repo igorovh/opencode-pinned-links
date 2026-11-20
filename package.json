@@ -1,6 +1,6 @@
 {
   "name": "opencode-pinned-links",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Pinned links for the OpenCode V2 TUI: the agent pins pull requests, Linear issues and other URLs to the session sidebar, one click opens them in the browser",
   "type": "module",
   "license": "MIT",
