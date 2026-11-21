@@ -143,7 +143,8 @@ bun test
 The sources are in `src/`, but OpenCode loads `dist/`. Run `bun run compile` after a change and commit `dist/` with
 the sources; CI fails when they differ.
 
-To record the real OpenCode TUI, run `bun run record`. It needs `opencode` (V2), `ttyd` and `ffmpeg` on `PATH` (or
+To record the real OpenCode TUI, run `bun run record` ([opencode-tui-recorder](https://github.com/igorovh/opencode-tui-recorder),
+set up in `recorder.config.ts`). It needs `opencode` (V2), `ttyd` and `ffmpeg` on `PATH` (or
 `OPENCODE_BIN` and `TTYD_BIN`) and Playwright's Chromium. It starts its own server in a temporary home, pins sample
 links and opens the session. The README demo is recorded with:
 
