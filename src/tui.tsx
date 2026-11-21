@@ -10,6 +10,26 @@ import { LinksRpc, type LinksChanged } from "./rpc"
 const MAX_SIDEBAR_ITEMS = 10
 const ADD = "\u0000add"
 const CLEAR = "\u0000clear"
+// The server loads the plugin on the first request for a directory, so the first
+// list can fail with `rpc.unavailable`. The TUI asks only once, so retry here.
+const LIST_RETRIES = 40
+const LIST_RETRY_MS = 250
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+/** True when the plugin RPC is not loaded yet and a retry may succeed. */
+export function isUnavailable(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    const text = String(error ?? "").toLowerCase()
+    return text.includes("rpc.unavailable") || text.includes("rpc is unavailable")
+  }
+  const record = error as { type?: unknown; message?: unknown }
+  if (record.type === "rpc.unavailable") return true
+  const text = String(record.message ?? "").toLowerCase()
+  return text.includes("rpc.unavailable") || text.includes("rpc is unavailable")
+}
 
 function truncate(value: string, width: number) {
   if (width <= 0) return ""
@@ -56,7 +76,11 @@ export function createUI(context: Context, open = openUrl) {
 
   const toast = (message: string, variant: "info" | "success" | "warning" | "error" = "info") =>
     context.ui.toast.show({ title: "Links", message, variant })
-  const fail = (error: unknown) => toast(error instanceof Error ? error.message : String(error), "error")
+  const fail = (error: unknown) => {
+    const message =
+      error instanceof Error ? error.message : typeof (error as { message?: unknown })?.message === "string" ? (error as { message: string }).message : String(error)
+    toast(message, "error")
+  }
 
   // Pins live on the root session; subagent sessions show their root's links too.
   const rootOf = (sessionID: string) => context.data.session.root(sessionID) || sessionID
@@ -65,8 +89,18 @@ export function createUI(context: Context, open = openUrl) {
     return [...new Set([root, sessionID, ...context.data.session.family(root)])]
   }
 
-  const fetchLinks = async (sessionID: string) =>
-    ((await api.list({ sessionIDs: familyOf(sessionID) })) as { links: Link[] }).links
+  const listLinks = async (sessionIDs: string[]): Promise<Link[]> => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return ((await api.list({ sessionIDs })) as { links: Link[] }).links
+      } catch (error) {
+        if (!isUnavailable(error) || attempt >= LIST_RETRIES) throw error
+        await sleep(LIST_RETRY_MS)
+      }
+    }
+  }
+
+  const fetchLinks = async (sessionID: string) => listLinks(familyOf(sessionID))
 
   const refresh = () => setVersion((value) => value + 1)
 
@@ -258,7 +292,7 @@ export function createUI(context: Context, open = openUrl) {
     const sessionIDs = createMemo(() => familyOf(props.sessionID), [], { equals: (a, b) => a.join() === b.join() })
     const links = asyncValue(
       () => ({ ids: sessionIDs(), version: version() }),
-      async ({ ids }) => ((await api.list({ sessionIDs: ids })) as { links: Link[] }).links,
+      async ({ ids }) => listLinks(ids),
       [] as Link[],
     )
     const [width, setWidth] = createSignal(30)

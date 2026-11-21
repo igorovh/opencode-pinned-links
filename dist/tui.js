@@ -135,6 +135,22 @@ var LinksRpc = Rpc.define({
 var MAX_SIDEBAR_ITEMS = 10;
 var ADD = "\x00add";
 var CLEAR = "\x00clear";
+var LIST_RETRIES = 40;
+var LIST_RETRY_MS = 250;
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function isUnavailable(error) {
+  if (!error || typeof error !== "object") {
+    const text = String(error ?? "").toLowerCase();
+    return text.includes("rpc.unavailable") || text.includes("rpc is unavailable");
+  }
+  const record = error;
+  if (record.type === "rpc.unavailable")
+    return true;
+  const text = String(record.message ?? "").toLowerCase();
+  return text.includes("rpc.unavailable") || text.includes("rpc is unavailable");
+}
 function truncate(value, width) {
   if (width <= 0)
     return "";
@@ -176,15 +192,29 @@ function createUI(context, open = openUrl) {
     message,
     variant
   });
-  const fail = (error) => toast(error instanceof Error ? error.message : String(error), "error");
+  const fail = (error) => {
+    const message = error instanceof Error ? error.message : typeof error?.message === "string" ? error.message : String(error);
+    toast(message, "error");
+  };
   const rootOf = (sessionID) => context.data.session.root(sessionID) || sessionID;
   const familyOf = (sessionID) => {
     const root = rootOf(sessionID);
     return [...new Set([root, sessionID, ...context.data.session.family(root)])];
   };
-  const fetchLinks = async (sessionID) => (await api.list({
-    sessionIDs: familyOf(sessionID)
-  })).links;
+  const listLinks = async (sessionIDs) => {
+    for (let attempt = 0;; attempt++) {
+      try {
+        return (await api.list({
+          sessionIDs
+        })).links;
+      } catch (error) {
+        if (!isUnavailable(error) || attempt >= LIST_RETRIES)
+          throw error;
+        await sleep(LIST_RETRY_MS);
+      }
+    }
+  };
+  const fetchLinks = async (sessionID) => listLinks(familyOf(sessionID));
   const refresh = () => setVersion((value) => value + 1);
   const stopEvents = api.events.on("changed", (event) => {
     refresh();
@@ -437,9 +467,7 @@ function createUI(context, open = openUrl) {
       version: version()
     }), async ({
       ids
-    }) => (await api.list({
-      sessionIDs: ids
-    })).links, []);
+    }) => listLinks(ids), []);
     const [width, setWidth] = createSignal(30);
     const list = () => void openList(props.sessionID).catch(fail);
     return _$createComponent(Show, {
@@ -554,5 +582,6 @@ var tui_default = Plugin.define({
 export {
   createUI,
   tui_default as default,
+  isUnavailable,
   openUrl
 };
