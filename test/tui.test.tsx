@@ -6,7 +6,7 @@ import path from "node:path"
 import type { Context, DialogSelectOptions, KeymapLayer } from "@opencode/plugin/tui/context"
 import { RGBA, type CliRenderer } from "@opentui/core"
 import { testRender, useRenderer } from "@opentui/solid"
-import { createUI } from "../src/tui"
+import { createUI, isUnavailable } from "../src/tui"
 import { Store } from "../src/store"
 
 // Every theme token resolves to the same grey, whatever its path.
@@ -174,4 +174,59 @@ test("a pin by the agent refreshes the sidebar and shows a toast", async () => {
   expect(t.toasts).toEqual(["Preview"])
   expect(t.captureCharFrame()).toContain("↗ Preview")
   t.renderer.destroy()
+})
+
+test("isUnavailable detects the plugin loading race", () => {
+  expect(isUnavailable({ type: "rpc.unavailable", message: "RPC is unavailable: pinned-links" })).toBe(true)
+  expect(isUnavailable(new Error("RPC is unavailable: pinned-links"))).toBe(true)
+  expect(isUnavailable(new Error("rpc.unavailable"))).toBe(true)
+  expect(isUnavailable(new Error("Session not found"))).toBe(false)
+  expect(isUnavailable({ type: "rpc.method_not_found", message: "no such method" })).toBe(false)
+})
+
+test("the sidebar retries when the first list returns rpc.unavailable", async () => {
+  root = await mkdtemp(path.join(os.tmpdir(), "links-tui-"))
+  const store = new Store(root)
+  await store.add({ sessionID: "ses_a", url: "https://github.com/acme/web/pull/482", title: "Fix login redirect" })
+
+  let calls = 0
+  const rpc = {
+    list: async ({ sessionIDs }: { sessionIDs: string[] }) => {
+      calls++
+      if (calls <= 2) throw { type: "rpc.unavailable", message: "RPC is unavailable: pinned-links" }
+      return { links: await store.list(sessionIDs) }
+    },
+    events: { on: () => () => {} },
+  }
+
+  let ui!: ReturnType<typeof createUI>
+  function Host() {
+    ui = createUI(
+      {
+        theme: fakeTheme(),
+        client: { rpc: () => rpc },
+        data: { session: { root: (id: string) => id, family: () => [] } },
+        ui: {
+          toast: { show: () => {} },
+          router: { current: () => ({ type: "session", sessionID: "ses_a" }) },
+          dialog: { clear: () => {}, prompt: async () => undefined, select: async () => undefined },
+        },
+      } as unknown as Context,
+      () => {},
+    )
+    return (
+      <box width={36} flexDirection="column">
+        <ui.Sidebar sessionID="ses_a" />
+      </box>
+    )
+  }
+
+  const rendered = await testRender(() => <Host />, { width: 60, height: 12 })
+  for (let i = 0; i < 40 && !rendered.captureCharFrame().includes("Fix login"); i++) {
+    await Bun.sleep(50)
+    await rendered.renderOnce()
+  }
+  expect(rendered.captureCharFrame()).toContain("Fix login")
+  expect(calls).toBeGreaterThan(2)
+  rendered.renderer.destroy()
 })
