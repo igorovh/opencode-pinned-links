@@ -55,7 +55,7 @@ Install a release from GitHub with the OpenCode CLI. Pin the tag: a pinned insta
 when a newer release exists.
 
 ```sh
-opencode plugin add github:igorovh/opencode-pinned-links#v0.0.1
+opencode plugin add github:igorovh/opencode-pinned-links#v0.0.2
 ```
 
 This adds the plugin to the global `plugins` array in `~/.config/opencode/opencode.jsonc`. The plugin has a server
@@ -67,14 +67,14 @@ You can also add the entry yourself:
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugins": ["github:igorovh/opencode-pinned-links#v0.0.1"]
+  "plugins": ["github:igorovh/opencode-pinned-links#v0.0.2"]
 }
 ```
 
 To remove the plugin:
 
 ```sh
-opencode plugin remove github:igorovh/opencode-pinned-links#v0.0.1
+opencode plugin remove github:igorovh/opencode-pinned-links#v0.0.2
 ```
 
 ## Keys and commands
@@ -100,7 +100,7 @@ Options go on the plugin entry in `opencode.jsonc`:
 {
   "plugins": [
     {
-      "package": "github:igorovh/opencode-pinned-links#v0.0.1",
+      "package": "github:igorovh/opencode-pinned-links#v0.0.2",
       "options": { "remind": false }
     }
   ]
